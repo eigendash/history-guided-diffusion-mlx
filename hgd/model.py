@@ -21,7 +21,7 @@ class Config:
     channels: int = 1
     dim: int = 128
     heads: int = 4
-    depth: int = 6
+    depth: int = 4
 
 
 def level_embedding(k, dim):
