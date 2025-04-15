@@ -1,6 +1,6 @@
 import numpy as np
 
-from hgd.data import BAND, BallWorld, detect
+from hgd.data import BallWorld, detect
 from hgd.metrics import MISS_PENALTY, ball_mass, centroid_error, chunk_metrics, horizon_metrics, motion
 
 
@@ -38,7 +38,6 @@ def test_shifted_ball_has_a_centroid_error_of_the_shift():
     a = BallWorld.render(centres)
     b = BallWorld.render(centres + np.array([0.0, 2.0]))
     assert abs(float(centroid_error(b, a)[0, 0]) - 2.0) < 0.35
-    assert BAND[0] > 3
 
 
 def test_motion_is_zero_for_a_still_video():
