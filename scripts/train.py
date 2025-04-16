@@ -28,9 +28,9 @@ LEVELS = {"dfot": independent_levels, "bd": binary_dropout_levels}
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=LEVELS, default="dfot")
-    ap.add_argument("--steps", type=int, default=4000)
-    ap.add_argument("--batch", type=int, default=32)
-    ap.add_argument("--lr", type=float, default=5e-4)
+    ap.add_argument("--steps", type=int, default=12000)
+    ap.add_argument("--batch", type=int, default=64)
+    ap.add_argument("--lr", type=float, default=8e-4)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default=None)
     args = ap.parse_args()

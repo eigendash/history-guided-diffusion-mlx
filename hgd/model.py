@@ -17,11 +17,25 @@ import mlx.nn as nn
 class Config:
     size: int = 16
     frames: int = 8
-    patch: int = 2
+    patch: int = 4
     channels: int = 1
     dim: int = 128
     heads: int = 4
     depth: int = 4
+
+
+def sincos(positions, dim):
+    """Fixed sinusoidal features for integer positions, shape (n, dim)."""
+    half = dim // 2
+    freqs = mx.exp(-math.log(10000.0) * mx.arange(half) / half)
+    angles = positions[:, None].astype(mx.float32) * freqs
+    return mx.concatenate([mx.sin(angles), mx.cos(angles)], axis=-1)
+
+
+def grid_embedding(side, dim):
+    """2D position code: half the channels for the row, half for the column."""
+    idx = mx.arange(side * side)
+    return mx.concatenate([sincos(idx // side, dim // 2), sincos(idx % side, dim // 2)], axis=-1)
 
 
 def level_embedding(k, dim):
@@ -75,8 +89,9 @@ class VideoDiT(nn.Module):
         p, c = cfg.patch, cfg.channels
         self.tokens = (cfg.size // p) ** 2
         self.embed = nn.Linear(p * p * c, cfg.dim)
-        self.space_pos = mx.random.normal((self.tokens, cfg.dim)) * 0.02
-        self.time_pos = mx.random.normal((cfg.frames, cfg.dim)) * 0.02
+        # fixed codes (leading underscore keeps them out of the parameters)
+        self._space_pos = grid_embedding(cfg.size // p, cfg.dim)
+        self._time_pos = sincos(mx.arange(cfg.frames), cfg.dim)
         self.level_mlp = nn.Sequential(nn.Linear(cfg.dim, cfg.dim), nn.SiLU(), nn.Linear(cfg.dim, cfg.dim))
         self.blocks = [Block(cfg.dim, cfg.heads) for _ in range(cfg.depth)]
         self.final_norm = nn.LayerNorm(cfg.dim, affine=False)
@@ -100,7 +115,7 @@ class VideoDiT(nn.Module):
     def __call__(self, x, levels):
         """x: (B, T, H, W, C); levels: (B, T). Returns the predicted v, same shape as x."""
         T = x.shape[1]
-        h = self.embed(self.patchify(x)) + self.space_pos[None, None] + self.time_pos[None, :T, None]
+        h = self.embed(self.patchify(x)) + self._space_pos[None, None] + self._time_pos[None, :T, None]
         cond = self.level_mlp(level_embedding(levels, self.cfg.dim))
         for block in self.blocks:
             h = block(h, cond)
